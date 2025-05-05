@@ -1,0 +1,22 @@
+-- +goose Up
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE IF NOT EXISTS persons (
+     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+     name VARCHAR(255) NOT NULL ,
+     surname VARCHAR(255) NOT NULL,
+     age  VARCHAR(255) NOT NULL,
+     gender VARCHAR(255) NOT NULL,
+     nationality VARCHAR(255) NOT NULL,
+     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     deleted_at TIMESTAMPTZ
+);
+
+
+-- +goose Down
+DROP TABLE IF EXISTS users;
+DROP EXTENSION IF EXISTS "uuid-ossp";
+
+
