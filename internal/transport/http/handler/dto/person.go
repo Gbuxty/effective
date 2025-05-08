@@ -1,6 +1,8 @@
 package dto
 
 import (
+	"Effective/internal/domain"
+	"errors"
 	"time"
 )
 
@@ -27,6 +29,34 @@ type UpdatePersonRequest struct {
 	Age         int    `json:"age"`
 	Gender      string `json:"gender"`
 	Nationality string `json:"nationality"`
+}
+
+func (req *UpdatePersonRequest) NewPerson(person *domain.Person) error {
+	if person == nil {
+		return errors.New("person is nil")
+	}
+
+	if req.Name != "" {
+		person.Name = req.Name
+	}
+
+	if req.Surname != "" {
+		person.Surname = req.Surname
+	}
+
+	if req.Age != 0 {
+		person.Age = req.Age
+	}
+
+	if req.Gender != "" {
+		person.Gender = req.Gender
+	}
+
+	if req.Nationality != "" {
+		person.Nationality = req.Nationality
+	}
+
+	return nil
 }
 
 type UpdatePersonResponse struct {

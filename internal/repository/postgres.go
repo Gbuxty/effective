@@ -5,7 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -106,9 +108,7 @@ func (r *PersonRepository) DeleteByID(ctx context.Context, id uuid.UUID) (bool, 
 	return true, nil
 }
 
-func (r *PersonRepository) UpdatePerson(ctx context.Context, person *domain.Person) (*domain.Person, error) {
-	updatePerson := domain.Person{}
-
+func (r *PersonRepository) UpdatePerson(ctx context.Context, person *domain.Person) error {
 	query := `UPDATE persons 
 				SET 
 					name = $1,
@@ -120,7 +120,7 @@ func (r *PersonRepository) UpdatePerson(ctx context.Context, person *domain.Pers
 				WHERE id = $6
 				RETURNING id, name, surname, age, gender, nationality, updated_at`
 
-	err := r.db.QueryRow(
+	_, err := r.db.Exec(
 		ctx,
 		query,
 		person.Name,
@@ -129,28 +129,94 @@ func (r *PersonRepository) UpdatePerson(ctx context.Context, person *domain.Pers
 		person.Gender,
 		person.Nationality,
 		person.ID,
-	).Scan(&updatePerson.ID,
-		&updatePerson.Name,
-		&updatePerson.Surname,
-		&updatePerson.Age,
-		&updatePerson.Gender,
-		&updatePerson.Nationality,
-		&updatePerson.UpdatedAt,
 	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrUserNotFound
+		}
+		return fmt.Errorf("failed to update person: %w", err)
+	}
+	return nil
+}
+
+func (r *PersonRepository) GetPersonFilter(ctx context.Context, person *domain.PersonFilter) (*[]domain.Person, error) {
+	query := sq.Select("id,name,surname,age,gender,nationality, created_at, updated_at").From("persons").PlaceholderFormat(sq.Dollar)
+
+	if person.Name != nil {
+		query = query.Where(sq.Eq{"name": *person.Name})
+	}
+
+	if person.Surname != nil {
+		query = query.Where(sq.Eq{"surname": *person.Surname})
+	}
+
+	if person.MinAge != nil && person.MaxAge != nil {
+		query = query.Where(sq.And{
+			sq.GtOrEq{"age": *person.MinAge},
+			sq.LtOrEq{"age": *person.MaxAge},
+		})
+	} else if person.MinAge != nil {
+		query = query.Where(sq.GtOrEq{"age": *person.MinAge})
+	} else if person.MaxAge != nil {
+		query = query.Where(sq.LtOrEq{"age": *person.MaxAge})
+	}
+
+	if person.MaxAge != nil {
+		query = query.Where(sq.LtOrEq{"age": *person.MaxAge})
+	}
+	if person.Gender != nil {
+		query = query.Where(sq.Eq{"gender": *person.Gender})
+	}
+	if person.Nationality != nil {
+		query = query.Where(sq.Eq{"nationality": *person.Nationality})
+	}
+
+	if person.Page <= 0 {
+		person.Page = 1
+	}
+	if person.Size <= 0 {
+		person.Size = 10
+	}
+
+	offset := (person.Page - 1) * person.Size
+	query = query.Offset(uint64(offset)).Limit(uint64(person.Size))
+
+	q, values, err := query.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build query: %w", err)
+	}
+	log.Printf("SQL: %s, Args: %v", q, values)
+
+	filterPerson := make([]domain.Person, 0)
+
+	rows, err := r.db.Query(ctx, q, values...)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
-		return nil, fmt.Errorf("failed to update person: %w", err)
+		return nil, fmt.Errorf("failed to get person by filter: %w", err)
 	}
-	return &updatePerson, nil
-}
+	defer rows.Close()
 
-func (r *PersonRepository) GetPersonFilter(ctx context.Context, person *domain.PersonFilter) (*domain.Person, error) {
+	for rows.Next() {
+		var pers domain.Person
+		if err := rows.Scan(
+			&pers.ID,
+			&pers.Name,
+			&pers.Surname,
+			&pers.Age,
+			&pers.Gender,
+			&pers.Nationality,
+			&pers.CreatedAt,
+			&pers.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan person: %w", err)
+		}
+		filterPerson = append(filterPerson, pers)
+	}
 
-	filterPerson := domain.Person{}
-	query:=`SELECT id,name,surname,age`
-
-
-	return nil, nil
+	if len(filterPerson) == 0 {
+		return nil, fmt.Errorf("no person found with the given filter")
+	}
+	return &filterPerson, nil
 }

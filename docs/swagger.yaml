@@ -1,0 +1,185 @@
+basePath: /api/v1
+definitions:
+  dto.CreatePersonRequest:
+    properties:
+      name:
+        maxLength: 50
+        minLength: 2
+        type: string
+      surname:
+        maxLength: 50
+        minLength: 2
+        type: string
+    required:
+    - name
+    - surname
+    type: object
+  dto.PersonResponse:
+    properties:
+      age:
+        type: integer
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      gender:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      nationality:
+        type: string
+      surname:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.UpdatePersonRequest:
+    properties:
+      age:
+        type: integer
+      gender:
+        type: string
+      name:
+        type: string
+      nationality:
+        type: string
+      surname:
+        type: string
+    type: object
+  handler.ErrResponse:
+    properties:
+      error:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  title: Effective API
+  version: "1.0"
+paths:
+  /person:
+    post:
+      consumes:
+      - application/json
+      description: Create a new person with the provided details
+      parameters:
+      - description: Person details
+        in: body
+        name: person
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreatePersonRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ID of the created person
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrResponse'
+      summary: Create a new person
+      tags:
+      - Person
+  /person/{id}:
+    delete:
+      description: Delete a person by ID
+      parameters:
+      - description: Person ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Successfully deleted
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrResponse'
+      summary: Delete a person
+      tags:
+      - Person
+    patch:
+      consumes:
+      - application/json
+      description: Update a person by ID
+      parameters:
+      - description: Person ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Person details to update
+        in: body
+        name: person
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdatePersonRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrResponse'
+      summary: Update a person
+      tags:
+      - Person
+  /persons:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of persons
+      parameters:
+      - default: 1
+        description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 'Page size (default: 10)'
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.PersonResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrResponse'
+      summary: Get a list of persons
+      tags:
+      - Person
+swagger: "2.0"

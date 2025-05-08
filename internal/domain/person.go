@@ -17,3 +17,4 @@ type Person struct {
 	UpdatedAt   time.Time
 	DeletedAt   time.Time
 }
+

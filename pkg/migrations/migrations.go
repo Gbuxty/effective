@@ -18,12 +18,6 @@ const (
 func Run(ctx context.Context, db *pgxpool.Pool, logger *logger.Logger) error {
 	logger.Info("Running migrations...")
 
-	conn, err := db.Acquire(ctx)
-	if err != nil {
-		return err
-	}
-	defer conn.Release()
-
 	if err := goose.SetDialect(dialect); err != nil {
 		return err
 	}
@@ -32,7 +26,7 @@ func Run(ctx context.Context, db *pgxpool.Pool, logger *logger.Logger) error {
 
 	dbSQL := stdlib.OpenDBFromPool(db)
 	defer dbSQL.Close()
-	//хард код как-то убрать
+	
 	if err := goose.Up(dbSQL, "."); err != nil {
 		return err
 	}

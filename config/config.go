@@ -9,12 +9,13 @@ import (
 
 const (
 	pathConfigFile = ".env"
+	dotenv         = "dotenv"
 )
 
 type Config struct {
-	HTTP     HTTPServer
-	Postgres PostgresConfig
-	APIUrl   APIUrl
+	HTTP     *HTTPServer
+	Postgres *PostgresConfig
+	APIUrl   *APIUrl
 }
 
 type HTTPServer struct {
@@ -41,7 +42,7 @@ type APIUrl struct {
 
 func Load() (*Config, error) {
 	viper.SetConfigFile(pathConfigFile)
-	viper.SetConfigType("dotenv")
+	viper.SetConfigType(dotenv)
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
@@ -49,13 +50,13 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		HTTP: HTTPServer{
+		HTTP: &HTTPServer{
 			Port:            viper.GetInt("HTTP_SERVER_PORT"),
 			ReadTimeout:     viper.GetDuration("HTTP_READ_TIMEOUT"),
 			WriteTimeout:    viper.GetDuration("HTTP_WRITE_TIMEOUT"),
 			ShutdownTimeout: viper.GetDuration("HTTP_SHUTDOWN_TIMEOUT"),
 		},
-		Postgres: PostgresConfig{
+		Postgres: &PostgresConfig{
 			Host:     viper.GetString("POSTGRES_HOST"),
 			Port:     viper.GetInt("POSTGRES_PORT"),
 			User:     viper.GetString("POSTGRES_USER"),
@@ -63,12 +64,11 @@ func Load() (*Config, error) {
 			DBName:   viper.GetString("POSTGRES_DB"),
 			SSLMode:  viper.GetString("POSTGRES_SSL_MODE"),
 		},
-		APIUrl: APIUrl{
+		APIUrl: &APIUrl{
 			AgifyUrl:       viper.GetString("AGIFY_URL"),
 			GenderizeUrl:   viper.GetString("GENDERIZE_URL"),
 			NationalizeUrl: viper.GetString("NATIONALIZE_URL"),
 		},
-	
 	}
 	return cfg, nil
 }
